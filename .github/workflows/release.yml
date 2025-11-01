@@ -61,7 +61,31 @@ jobs:
           $KeyContent = "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
           if (-not $KeyContent) { Write-Error "TAURI_SIGNING_PRIVATE_KEY not set"; exit 1 }
           $KeyPath = "$env:RUNNER_TEMP\tauri.key"
-          Set-Content -Path $KeyPath -Value $KeyContent -NoNewline
+
+          # Accept either raw minisign key content (two lines with 'untrusted comment:')
+          # or base64-encoded full key file content. Decode when needed.
+          $trimmed = $KeyContent.Trim()
+          $isBase64 = $trimmed -match '^[A-Za-z0-9+/=]+$'
+          $written = $false
+          if ($isBase64) {
+            try {
+              $decodedBytes = [Convert]::FromBase64String($trimmed)
+              $decodedText  = [Text.Encoding]::UTF8.GetString($decodedBytes)
+              if ($decodedText -match '^untrusted comment:') {
+                Set-Content -Path $KeyPath -Value $decodedText
+                $written = $true
+              }
+            } catch { }
+          }
+          if (-not $written) {
+            if ($KeyContent -match '^untrusted comment:') {
+              Set-Content -Path $KeyPath -Value $KeyContent
+            } else {
+              Write-Error "TAURI_SIGNING_PRIVATE_KEY must be the minisign secret key file content (two lines starting with 'untrusted comment:') or its base64."
+              exit 1
+            }
+          }
+
           echo "TAURI_SIGNING_PRIVATE_KEY=$KeyPath" >> $env:GITHUB_ENV
           if ("${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}") {
             echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> $env:GITHUB_ENV
