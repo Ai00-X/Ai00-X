@@ -82,6 +82,7 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.sig
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/msi/*.sig
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -96,6 +97,7 @@ jobs:
             src-tauri/target/release/bundle/deb/*.sig
             src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/rpm/*.sig
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -110,6 +112,7 @@ jobs:
             src-tauri/target/release/bundle/macos/*.app.tar.gz.sig
             src-tauri/target/release/bundle/macos/*.zip
             src-tauri/target/release/bundle/macos/*.zip.sig
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -174,5 +177,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: latest.json
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
