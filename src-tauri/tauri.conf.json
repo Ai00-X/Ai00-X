@@ -35,7 +35,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ4RDk1MzY0OTY2QUFGODgKUldTSXIycVdaRlBaMkVQVFZMODBRM1RFQWlyRCtkaDNaSHlJSUlUOGZVRGgwM082UHRjSWd4RlQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk3ODAzQkEzOEU5RUYxQjkKUldTNThaNk9venVBbC96UEZGL3R5R2RvVnVSQS92WmloVEJhQTIxMnFnVkdnMmFuT2Rsb29CbDYK",
       "endpoints": [
         "https://github.com/Ai00-X/Ai00-X/releases/latest/download/latest.json"
       ]
