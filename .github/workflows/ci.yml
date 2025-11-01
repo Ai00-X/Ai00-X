@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add rustfmt & clippy
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
+
+      - name: Format check (Rust)
+        run: cargo fmt --manifest-path ./src-tauri/Cargo.toml -- --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --manifest-path ./src-tauri/Cargo.toml -- -D warnings
+
+      - name: Frontend build
+        run: pnpm build
+
+      - name: Rust release build
+        run: cargo build --release --manifest-path ./src-tauri/Cargo.toml
