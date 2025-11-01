@@ -55,6 +55,10 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
+      - name: Install WiX Toolset (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install wixtoolset -y
+
       - name: Prepare signing key
         shell: pwsh
         run: |
@@ -104,7 +108,6 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.sig
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/msi/*.sig
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -115,11 +118,6 @@ jobs:
           files: |
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/appimage/*.sig
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/deb/*.sig
-            src-tauri/target/release/bundle/rpm/*.rpm
-            src-tauri/target/release/bundle/rpm/*.sig
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -128,13 +126,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            src-tauri/target/release/bundle/macos/*.dmg
-            src-tauri/target/release/bundle/macos/*.sig
             src-tauri/target/release/bundle/macos/*.app.tar.gz
             src-tauri/target/release/bundle/macos/*.app.tar.gz.sig
-            src-tauri/target/release/bundle/macos/*.zip
-            src-tauri/target/release/bundle/macos/*.zip.sig
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -199,6 +192,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: latest.json
-          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
