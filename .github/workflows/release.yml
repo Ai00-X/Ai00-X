@@ -1,0 +1,105 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-windows:
+    runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add rustfmt & clippy
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
+
+      - name: Format check (Rust)
+        run: cargo fmt --manifest-path ./src-tauri/Cargo.toml -- --check
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --manifest-path ./src-tauri/Cargo.toml -- -D warnings
+
+      - name: Prepare signing key
+        shell: pwsh
+        run: |
+          $KeyContent = "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}"
+          if (-not $KeyContent) { Write-Error "TAURI_SIGNING_PRIVATE_KEY not set"; exit 1 }
+          $KeyPath = "$env:RUNNER_TEMP\tauri.key"
+          Set-Content -Path $KeyPath -Value $KeyContent -NoNewline
+          echo "TAURI_SIGNING_PRIVATE_KEY=$KeyPath" >> $env:GITHUB_ENV
+          if ("${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}") {
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> $env:GITHUB_ENV
+          }
+
+      - name: Frontend build
+        run: pnpm build
+
+      - name: Tauri release build (Windows)
+        run: pnpm tauri build
+
+      - name: Generate latest.json
+        shell: pwsh
+        run: |
+          $versionTag = "${{ github.ref_name }}"    # e.g., v0.1.0
+          $version = $versionTag.TrimStart('v')
+          $now = [DateTime]::UtcNow.ToString("s") + "Z"
+          $nsisDir = "src-tauri\target\release\bundle\nsis"
+          $exe = Get-ChildItem "$nsisDir\*.exe" | Select-Object -First 1
+          if (-not $exe) { Write-Error "NSIS exe not found"; exit 1 }
+          $exeSigPath = "$($exe.FullName).sig"
+          if (-not (Test-Path $exeSigPath)) { Write-Error "Signature for $($exe.Name) not found"; exit 1 }
+          $exeSig = Get-Content $exeSigPath
+          $ownerRepo = "${{ github.repository }}" # Ai00-X/Ai00-X
+          $latest = @{
+            version = $version
+            notes   = ""
+            pub_date= $now
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $exeSig
+                url       = "https://github.com/$ownerRepo/releases/download/$versionTag/$($exe.Name)"
+              }
+            }
+          } | ConvertTo-Json -Depth 4
+          $out = "src-tauri\target\release\latest.json"
+          Set-Content -Path $out -Value $latest -Encoding UTF8
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.sig
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/msi/*.sig
+            src-tauri/target/release/latest.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
